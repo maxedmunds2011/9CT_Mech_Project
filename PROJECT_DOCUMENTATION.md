@@ -11,7 +11,9 @@ The solution that could be implemented is to ake a Raspberry Pi program that inc
 
 This can also work for humidity, though it uses the humidity detector
 ## Functional Requirements
-
+The designated temperature range is 12-20 degrees celsius, as they are the most liveable conditions for sleeping times.
+A red LED or high pitched puzzer will turn on when the temperature is above 20 degrees celsius, while a blue LED or low pitched buzzer will turn on when the temperature is below 20 degrees celsius. The LED will be green only when allowed to be (in the daytime) from 9am to 7pm, when it detects the accurate temperature range.
+The temperature range could change depending on the time of day, from 12-20 degrees celsius at night and 18-26 degrees celsius during the day.
 ## Test Cases
 
 ## Non-Functional Requirements
