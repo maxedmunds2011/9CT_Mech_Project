@@ -4,20 +4,47 @@ When it is cold and damp, mould has a potential to grow. At night time, rain can
 ## Proposed Solution
 The solution that could be implemented is to ake a Raspberry Pi program that includes four primary sensors: a temperature sensor and humidity detector to detect their respective areas, a buzzer when the humidity or temperature reaches a certain level, and a small sound to detect the calpping of hands or other noise. LEDs could also be implemented to show how close the humidity and temperature is to being damp or cold respectively, or as a subtitute to a buzzer. 
 ## Key Actions
- - Temperature detector detects temperature outside of the designated range. It does this every 5 seconds.
+ - Temperature Sensor and Humidity Detector detects temperature and humidity respectivelty outside of the designated range. It does this every 5 seconds.
  - A red or blue LED light is turned on depending on if it's above range (red) or below range (blue)
- - Buzzer alerts user of the temperature out of place
+ - Different pitched buzzer sounds alerts user of the temperature or humidity out of place
  - A clap from the user turns the buzzer off
-
-This can also work for humidity, though it uses the humidity detector
 ## Functional Requirements
-The designated temperature range is 12-20 degrees celsius, as they are the most liveable conditions for sleeping times.
-A red LED or high pitched puzzer will turn on when the temperature is above 20 degrees celsius, while a blue LED or low pitched buzzer will turn on when the temperature is below 20 degrees celsius. The LED will be green only when allowed to be (in the daytime) from 9am to 7pm, when it detects the accurate temperature range.
-The temperature range could change depending on the time of day, from 12-20 degrees celsius at night and 18-26 degrees celsius during the day.
+The designated temperature range is 15-22 degrees celsius, as they are the least likely conditions for mould to grow. 
+
+This is paired with a humidity at between 30 - 50%, because mould germinates most in humidity of 60% or more.
+
+Both the temperature and humidity will have a set of LEDs each for distinguishing the difference.
+
+A red LED will turn on when the temperature is above 22 degrees celsius, or when the humidity is above 60%. After one minute without any clap detected, a high-pitched buzzer will turn on as well. This acts as the 'too high' label
+
+A yellow LED will turn on when the temperature is at 15 or 22 degrees celsius or the humidity is between 50% and 60%. This acts as a warning for movement into the red LED areas.
+
+A green LED will turn on and remain on as long as the temperature is between 16 and 21 degrees celsius and the humidity is between 30 and 50%. This acts as the 'just right' label and should be maintained most of the time.
+
+A blue LED will turn on when the temperature is below 15 degrees celsius or the humidity is below 30%. After one minute without any clap detected, a low-pitched buzzer will turn on as well. This acts as the 'too low' label.
+
+A sound sensor detects a clap when the red LED or blue LED are turned on. At a certain noise level the sound sensor will disable all buzzers for 10 minutes to allow time to fix the humidity and temperature levels
 ## Test Cases
-
+| Test Case | Input     | Expected Output   |
+|---------- |---------- |----------------   |
+| Temperatue too hot | Temperature sensor reads above 22 degrees celsius | Red LED turns on. after 1 minute a high-pitched buzzer turns on |
+| Temperature in high range | Temperature sensor reads 22 degrees celsius | Yellow LED turns on |
+| Temperature in medium range | Temperature sensor reads 16-21 degrees celsius | Green LED turns on |
+| Temperature in low range | Temperature sensor reads 15 degrees celsius | Yellow LED turns on |
+| Temperature too cold | Temperature sensor reads below 15 degrees celsius | Blue LED turns on. After 1 minute a low-pitched buzzer turns on |
+| Humidity too high | Humidity detector reads above 60% | Red LED turns on. after 1 minute a high-pitched buzzer turns on |
+| Humidity in high range | Humidity detector reads 50-60% | Yellow LED turns on |
+| Humidity in medium range | Humidity detector reads 35-50% | Green LED turns on |
+| Humidity in low range | Humidity detector reads 30-35% | Yellow LED turns on |
+| Humidity too cold | Humidity detector reads below 30% | Blue LED turns on. After 1 minute a low-pitched buzzer turns on |
+| Sharp clap detected | Sound sensor detects hertz between 2200 and 2800 | All buzzers are disabled and turned off for 10 minutes |
 ## Non-Functional Requirements
-
+### Efficiency:
+The robot will need to detect both the temperature and humidity using their respective sensor, doing this every 5 seconds for maximum efficiency. The clap should be detected every 0.1 seconds to ensure a fast and connected correlation. It can't run out of battery or randomly stop working in the middle of the day - it must remain consistently on throughout. All LEDs need to function properly and by themselves, attached to GPIO pins to reserve other pins for more the more important sensors.
+### Response Time
+The robot should detect the temperature and humidity respectively every 5 seconds for maximum efficiency. The clap should be detected every 0.1 seconds to ensure a fast and connected correlation. 
+### Accuracy:
+The robot needs to measure the temperature and humidity fairly accurately, to one decimal place. It must detect the difference between a sharp clap and other loud sound to avoid unwanted periods where buzzers are disabled. The clap should also only work 10 minutes after the last clap to avoid stacking. 
 # Algorithms
 
 # Development and Integration
