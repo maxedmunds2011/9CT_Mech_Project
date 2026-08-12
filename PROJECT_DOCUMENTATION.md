@@ -116,7 +116,33 @@ END clap_detect()
 ```
 
 # Development and Integration
+``` Python
+""" The purpose of this successful test was to see if the sound sensor would work when a sharp sound (like a clap or snap of fingers) would activate a random LED. This is the combination of the future sound sensor and a look at the main loop & how LEDs will react """
 
+from machine import Pin, ADC # Connects the Raspberry Pi pins to Thonny
+from time import sleep # Allows for the use of the sleep() function
+
+# Initialization of GPIO18 as input
+digital = Pin(18,Pin.IN, Pin.PULL_UP) # This is the setup for the sound sensor
+led = Pin(16, Pin.OUT) # This is setup for the test LED
+led.value(0) # The LED begins off
+
+print("KY-038 Microphone test")
+
+
+""" This while loop is reading the environment every 0.1 seconds to check for any sounds, specifically sharp sounds, which will turn the test LED on """
+
+while True: # Continues until break occurs
+    digital_value = digital.value() # Creating a variable based on the sound sensor input
+    print(digital_value) # Used as a test to see the difference in binary
+    if digital_value == 1: # The digital value at 1 represents a noise being made
+        led.value(0) # Unsure why, but the (0) in this turns the LED on for 0.1 seconds
+        sleep(0.1)
+    else:
+        led.value(1) # Unsure why, but this keeps the LED off
+
+""" This unsure circumstance between the LED values will be fixed in a later evaluation. """
+```
 # Testing and Debugging
 
 # Evaluation
