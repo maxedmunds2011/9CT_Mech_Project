@@ -46,6 +46,74 @@ The robot should detect the temperature and humidity respectively every 5 second
 ### Accuracy:
 The robot needs to measure the temperature and humidity fairly accurately, to one decimal place. It must detect the difference between a sharp clap and other loud sound to avoid unwanted periods where buzzers are disabled. The clap should also only work 10 minutes after the last clap to avoid stacking. 
 # Algorithms
+## Flowcharts
+<img src="image.png" alt="Description of image">
+<img src="image0.png" alt="Description of image">
+<img src="image1.png" alt="Description of image">
+
+## Pseudocode
+```
+BEGIN
+WHILE TRUE
+    INPUT temp
+    IF temp is greater than 22 THEN
+        too_high()
+    ELIF temp is 15 or 22 THEN
+        warning()
+    ELIF temp is greater than 15 THEN
+        just_right()
+    ELSE
+        too_low()
+    ENDIF
+    INPUT moist
+    IF moist is greater than 60% THEN
+        too_high()
+    ELIF moist is 30%-35% or 50%-60% THEN
+        warning()
+    ELIF moist is greater than 35% THEN
+        just_right()
+    ELSE
+        too_low()
+    ENDIF
+    ENDWHILE
+END
+
+BEGIN too_high()
+clap_detect()
+IF clap_detect RETURNS 'yes' THEN
+    OUTPUT red_Led.value(1)
+    wait (60)
+    OUTPUT high_buzzer.on
+END too_high()
+
+BEGIN warning()
+clap_detect()
+IF clap_detect RETURNS 'yes' THEN
+    OUTPUT yellow_Led.value(1)
+END warning()
+
+BEGIN just_right()
+clap_detect()
+IF clap_detect RETURNS 'yes' THEN
+    OUTPUT green_Led.value(1)
+END just_right()
+
+BEGIN too_low()
+clap_detect()
+IF clap_detect RETURNS 'yes' THEN
+    OUTPUT red_Led.value(1)
+    wait (60)
+    OUTPUT low_buzzer.on
+END too_low()
+
+BEGIN clap_detect()
+WHILE TRUE
+    IF clap_detected THEN
+        OUTPUT 'yes'
+    ELSE
+        OUTPUT 'no'
+END clap_detect()
+```
 
 # Development and Integration
 
