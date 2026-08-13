@@ -37,7 +37,7 @@ A sound sensor detects a clap when the red LED or blue LED are turned on. At a c
 | Humidity in medium range | Humidity detector reads 35-50% | Green LED turns on |
 | Humidity in low range | Humidity detector reads 30-35% | Yellow LED turns on |
 | Humidity too cold | Humidity detector reads below 30% | Blue LED turns on. After 1 minute a low-pitched buzzer turns on |
-| Sharp clap detected | Sound sensor detects hertz between 2200 and 2800 | All buzzers are disabled and turned off for 10 minutes |
+| Sharp clap detected | Sound sensor detects hertz between 2200 and 2800 | All buzzers are disabled and turned off for 10 minutes | 
 ## Non-Functional Requirements
 ### Efficiency:
 The robot will need to detect both the temperature and humidity using their respective sensor, doing this every 5 seconds for maximum efficiency. The clap should be detected every 0.1 seconds to ensure a fast and connected correlation. It can't run out of battery or randomly stop working in the middle of the day - it must remain consistently on throughout. All LEDs need to function properly and by themselves, attached to GPIO pins to reserve other pins for more the more important sensors.
