@@ -1,5 +1,5 @@
 # Add imports here (machine, time, etc.)
-from machine import Pin # Connects the Raspberry Pi pins to Thonny
+from machine import Pin, Timer, PWM # Connects the Raspberry Pi pins to Thonny
 from time import sleep # Allows for the use of the sleep() function
 from utime import sleep
 from dht import DHT11
@@ -17,13 +17,21 @@ yellow_led = Pin(16, Pin.OUT)
 green_led = Pin(28, Pin.OUT)
 blue_led = Pin(26, Pin.OUT)
 dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
-# buzzer = Pin(21, Pin.OUT)
+pwm = PWM(Pin(9)) 
 
 red_led.value(0) # The LED begins off
 yellow_led.value(0)
 green_led.value(0)
 blue_led.value(0)
-# buzzer.value (0)
+
+pwm.freq(800)
+
+def minute(timer): # This timer correlates to the mode seen later
+    while True: # Ensures that the buzzer continues even after the timer has reset
+        pwm.duty_u16(32768) # Half of 35535, half volume
+        sleep(1) 
+        pwm.duty_u16(0) # no volume, creates an alarm sound
+        sleep(1)
 
 def condition_read():
     dht11_sensor.measure()
@@ -46,6 +54,8 @@ def clap_detect():
 
 
 def too_high():
+    timer = Timer() # Assigns the timer to the in-built function
+    timer.init(mode=Timer.PERIODIC, period = 60000, callback=minute)
     while temperature > 22 or humidity > 60:
         current_led = red_led
         clap_detect()    

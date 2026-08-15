@@ -148,13 +148,73 @@ while True: # Continues until break occurs
 ``` Python
 """ The first test I'm going to try is the test case of if it is too hot, or humid, a red LED will turn on. We will do the buzzer next once this works. """
 
-from machine import Pin
+from machine import Pin # This will allow us to use the breadboard pins
+from utime import sleep # Allows use of the sleep function
+from dht import DHT11 # Allows use of the temperature/humidity sensor
+
+""" Variable assigning - this also assigns certain sensors and devices to pins on the Pico. """
+dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
+red_led = Pin(27, Pin.OUT)
+
+""" This variable will come in use later. """
+issue = ""
+
+""" This function was created so that the temperature and humidity can now be read outside of the main loop/function, which is imperative for switching between LEDs without having to use a sound sensor. """
+def condition_read():
+    dht11_sensor.measure() # Built in function with the DHT11 that measures the temperature and humidity, as seen below
+    temp = dht11_sensor.temperature() 
+    humi = dht11_sensor.humidity()
+    print("Temperature: {}°C   Humidity: {:.0f}% ".format(temp, humi)) # This is more of a visual for me to make sure that the device is working
+    print()
+    sleep(2) # First example of the sleep function. The number in the brackets corresponds to seconds
+
+""" This function will be made more complex with the inclusion of the sound sensor, but for now its only purpose is to turn on a red LED until the temperature and humidity shift out of the dedicated region. """
+def too_high(): 
+    while temp > 22 or humi > 60: # This ensures that while these conditions are met, the LED will stay red.
+        red_led.value(1) # Turns on the LED
+        condition_read() # Ensures that temperature and humidity remain recorded
+        
+while True: # This is the main loop, which will eventually be in the main function
+    """ While the temp and humi variables are made reference in the function below, the main loop doesn't see these variables so for now, the temp and humi also have to be assigned on the main loop. """
+    temp = dht11_sensor.temperature()
+    humi = dht11_sensor.humidity()
+    condition_read()
+    
+    """ This section will become more apparent in its use later on. """
+    if temp > 22: # Requirement to run through the too_high function
+        issue = "temperature"
+        too_high()
+    if humi > 60: # Requirement to run through the too_high function
+        issue = "humidity"
+        too_high()
+        
+    red_led.value(0) # Makes sure to turn off the LED in case it was on from before
+```
+
+Both of these test cases worked (2/11 test cases half-complete)
+
+(From now on, I will add to this code until the sound sensor, where I will use my main.py code.)
+### Test 2: Too High (with buzzers)
+``` Python
+""" Not as much was added in this test, however this leaves the groundwork for all future LED test cases. The main focus of this was to test the buzzer and implement a timer function. """
+from machine import Pin, PWM, Timer # Adds the Timer import for the in-built timer function
 from utime import sleep
 from dht import DHT11
 
 dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
+pwm = PWM(Pin(9)) # Assigning of the buzzer to a pin
 red_led = Pin(27, Pin.OUT)
 issue = ""
+
+pwm.freq(800) # As shown in the test cases, the buzzer has been set to a high frequency
+
+""" The purpose of this new function correlates with the in-built timer. After a minute of the red LED being on, this function will begin and not stop until the robot is turned off, and later when the sound sensor detects a sharp noise. """
+def minute(timer): # This timer correlates to the mode seen later
+    while True: # Ensures that the buzzer continues even after the timer has reset
+        pwm.duty_u16(32768) # Half of 35535, half volume
+        sleep(1) 
+        pwm.duty_u16(0) # no volume, creates an alarm sound
+        sleep(1)
 
 def condition_read():
     dht11_sensor.measure()
@@ -164,10 +224,14 @@ def condition_read():
     print()
     sleep(2)
 
+""" This function was finally complete with the implementation of the timer. The role of the timer is to create a background stopwatch that doesn't interfere with the loop. """
 def too_high():
+    timer = Timer() # Assigns the timer to the in-built function
+    timer.init(mode=Timer.PERIODIC, period = 60000, callback=minute) # The mode I explained above, but the period is the time in milliseconds (this is exactly a minute) and the callback is the function that occurs after the minute
     while temp > 22 or humi > 60:
         red_led.value(1)
         condition_read()
+        
         
 while True:
     temp = dht11_sensor.temperature()
@@ -182,14 +246,10 @@ while True:
         too_high()
         
     red_led.value(0)
+""" Otherwise, now its time to focus on the other LEDs and how they differ. I will create a system that changes the LED based on the temperature and humidity. """
 ```
-Both of these test cases worked (2/11 test cases half-complete)
 
-(From now on, I will add to this code until the sound sensor, where I will use my main.py code.)
-### Test 2: Too High (with buzzers)
-``` Python
-
-```
+Now the first 2 test cases have been fully complete. Now I need to complete the bulk of the test cases: the other LEDs that vary slightly in characteristiscs.
 
 ### Test 3: Other LEDs (Warning, Just Right & Too Low)
 ``` Python
