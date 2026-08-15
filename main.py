@@ -1,7 +1,6 @@
 # Add imports here (machine, time, etc.)
-from machine import Pin, Timer, PWM # Connects the Raspberry Pi pins to Thonny
-from time import sleep # Allows for the use of the sleep() function
-from utime import sleep
+from machine import Pin, Timer, PWM # Connects the Raspberry Pi pins to Thonny # Allows for the use of the sleep() function
+from utime import sleep # Allows the implementation of the in-built sleep() function
 from dht import DHT11
 
 
@@ -11,13 +10,14 @@ humidity = ""
 issue = ""
 current_led = ""
 
-digital = Pin(18,Pin.IN, Pin.PULL_UP) # This is the setup for the sound sensor
-red_led = Pin(27, Pin.OUT)
-yellow_led = Pin(16, Pin.OUT)
-green_led = Pin(28, Pin.OUT)
-blue_led = Pin(26, Pin.OUT)
-dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
 pwm = PWM(Pin(9)) 
+dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
+yellow_led = Pin(16, Pin.OUT)
+digital = Pin(18,Pin.IN, Pin.PULL_UP) # This is the setup for the sound sensor
+blue_led = Pin(26, Pin.OUT)
+red_led = Pin(27, Pin.OUT)
+green_led = Pin(28, Pin.OUT)
+
 
 red_led.value(0) # The LED begins off
 yellow_led.value(0)
@@ -26,12 +26,14 @@ blue_led.value(0)
 
 pwm.freq(800)
 
+
 def minute(timer): # This timer correlates to the mode seen later
     while True: # Ensures that the buzzer continues even after the timer has reset
         pwm.duty_u16(32768) # Half of 35535, half volume
         sleep(1) 
         pwm.duty_u16(0) # no volume, creates an alarm sound
         sleep(1)
+
 
 def condition_read():
     dht11_sensor.measure()
@@ -40,6 +42,7 @@ def condition_read():
     print("Temperature: {}°C   Humidity: {:.0f}% ".format(temp, humi))
     print()
     sleep(2)
+
 
 def clap_detect():
     while True: # Continues until break occurs

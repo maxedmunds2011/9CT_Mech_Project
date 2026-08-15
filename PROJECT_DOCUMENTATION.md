@@ -86,26 +86,6 @@ IF clap_detect RETURNS 'yes' THEN
     OUTPUT high_buzzer.on
 END too_high()
 
-BEGIN warning()
-clap_detect()
-IF clap_detect RETURNS 'yes' THEN
-    OUTPUT yellow_Led.value(1)
-END warning()
-
-BEGIN just_right()
-clap_detect()
-IF clap_detect RETURNS 'yes' THEN
-    OUTPUT green_Led.value(1)
-END just_right()
-
-BEGIN too_low()
-clap_detect()
-IF clap_detect RETURNS 'yes' THEN
-    OUTPUT red_Led.value(1)
-    wait (60)
-    OUTPUT low_buzzer.on
-END too_low()
-
 BEGIN clap_detect()
 WHILE TRUE
     IF clap_detected THEN
@@ -253,9 +233,115 @@ Now the first 2 test cases have been fully complete. Now I need to complete the 
 
 ### Test 3: Other LEDs (Warning, Just Right & Too Low)
 ``` Python
+""" This was, and probably will be, the biggest change in the project. While I was filling out the other lights, I noticed a problem: only the temperature would read. This was due to the temperature being stuck in a while loop, so I removed that and instead added a new set of LEDs for humidity, different through the first letters: t and h. I used this as well as knowledge of functions to create a system where it will only read if t or h is True. Now the only while loop is the main loop, and there is a flashing effect with the LEDs. """
+from machine import Pin, PWM, Timer
+from utime import sleep
+from dht import DHT11
 
+dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
+pwm = PWM(Pin(13))
+
+""" As I explained earlier, I seperated the LEDs into temperture-related and humidity related. """
+t_yellow_led = Pin(16, Pin.OUT)
+t_blue_led = Pin(26, Pin.OUT)
+t_red_led = Pin(27, Pin.OUT)
+t_green_led = Pin(28, Pin.OUT)
+
+h_red_led = Pin(0, Pin.OUT)
+h_yellow_led = Pin(1, Pin.OUT)
+h_green_led = Pin(2, Pin.OUT)
+h_blue_led = Pin(3, Pin.OUT)
+
+timer = Timer() # This needs to be stated before all of the functions
+
+LEDs = [t_yellow_led, t_blue_led, t_red_led, t_green_led, h_red_led, h_yellow_led, h_green_led, h_blue_led] # Used to turn off all LEDs and create the flashing effect.
+
+def minute(timer):
+    while True:
+        pwm.duty_u16(32768)
+        sleep(1)
+        pwm.duty_u16(0)
+        sleep(1)
+        
+""" As you can see, I changed the start_buzzer function to be a little bit more readable and accurate with the function use. The stop_buzzer function will stop the timer and turn any buzzer off when the temperature or humidity naturally change. """
+def start_buzzer(freq=800, period_ms=60000):
+    timer.init(mode=Timer.PERIODIC, period = period_ms, callback=minute)
+    
+def stop_buzzer():
+    timer.deinit() # Turns off the timer
+    pwm.duty_u16(0)
+
+def condition_read():
+    dht11_sensor.measure()
+    temp = dht11_sensor.temperature()
+    humi = dht11_sensor.humidity()
+    print("Temperature: {}°C   Humidity: {:.0f}% ".format(temp, humi))
+    print()
+
+""" I'll use this function as the example for the other three. The LED functions how have a t=false and h=false attached to them which will be resolved in the main loop to see what LEDs will turn on. Then it will turn on the selected LED. """
+def too_high(t=False, h=False): # Both are originally set to false though can be changed in the main loop.
+    pwm.freq(800)
+    start_buzzer(freq=800, period_ms=60000)
+    if t: # This correlates to if t or h is true from the main loop
+        t_red_led.value(1)
+    if h:
+        h_red_led.value(1)
+        
+def warning(t=False, h=False):
+    stop_buzzer()
+    if t:
+        t_yellow_led.value(1)
+    if h:
+        h_yellow_led.value(1)  
+    
+def just_right(t=False, h=False):
+    stop_buzzer()
+    if t:
+        t_green_led.value(1)
+    if h:
+        h_green_led.value(1)    
+    
+def too_low(t=False, h=False):
+    pwm.freq(500)
+    start_buzzer(freq=800, period_ms=60000)
+    if t:
+        t_blue_led.value(1)
+    if h:
+        h_blue_led.value(1)
+      
+
+while True:
+    for x in LEDs:
+        (x).value(0) # This turns off all LEDs, ready for another cycle of reading
+
+    temp = dht11_sensor.temperature()
+    humi = dht11_sensor.humidity()
+    condition_read()
+    
+    """ Here is the main if/else tree. Depending on the temperature and humidity will depend on what function is chosen and allow their respective LED. """
+    if temp > 22:
+            too_high(t=True) # Sets this to true so that the specific LED turns on
+    elif temp == 22 or temp == 15:
+            warning(t=True)
+    elif 15 > temp > 22:
+            just_right(t=True)
+    elif temp < 22:
+            too_low(t=True)
+            
+    if humi > 60:
+            too_high(h=True)
+    elif 30 >= humi >= 35 or 55 >= humi >= 60:
+            warning(h=True)
+    elif 35 > humi > 55:
+            just_right(h=True)
+    elif humi < 30:
+            too_low(h=True)
+            
+    sleep(2) # This has been moved to the end to allow for a full, uninterupted loop
+
+""" This update was huge, allowing for change in LEDs every 2 seconds, allowance to turn the buzzer off, and most importantly, the ability to view the state of both temperature and humidity seperately. """
 ```
-
+10/11 Test Cases complete. Hardest one left.
 ### Test 4: Sound Detection
 ``` Python
 
