@@ -17,9 +17,9 @@ Both the temperature and humidity will have a set of LEDs each for distinguishin
 
 A red LED will turn on when the temperature is above 22 degrees celsius, or when the humidity is above 60%. After one minute without any clap detected, a high-pitched buzzer will turn on as well. This acts as the 'too high' label
 
-A yellow LED will turn on when the temperature is at 15 or 22 degrees celsius or the humidity is between 50% and 60%. This acts as a warning for movement into the red LED areas.
+A yellow LED will turn on when the temperature is at 15 or 22 degrees celsius or the humidity is between 55% and 60%. This acts as a warning for movement into the red LED areas.
 
-A green LED will turn on and remain on as long as the temperature is between 16 and 21 degrees celsius and the humidity is between 30 and 50%. This acts as the 'just right' label and should be maintained most of the time.
+A green LED will turn on and remain on as long as the temperature is between 16 and 21 degrees celsius and the humidity is between 30 and 55%. This acts as the 'just right' label and should be maintained most of the time.
 
 A blue LED will turn on when the temperature is below 15 degrees celsius or the humidity is below 30%. After one minute without any clap detected, a low-pitched buzzer will turn on as well. This acts as the 'too low' label.
 
@@ -33,8 +33,8 @@ A sound sensor detects a clap when the red LED or blue LED are turned on. At a c
 | Temperature in low range | Temperature sensor reads 15 degrees celsius | Yellow LED turns on |
 | Temperature too cold | Temperature sensor reads below 15 degrees celsius | Blue LED turns on. After 1 minute a low-pitched buzzer turns on |
 | Humidity too high | Humidity detector reads above 60% | Red LED turns on. after 1 minute a high-pitched buzzer turns on |
-| Humidity in high range | Humidity detector reads 50-60% | Yellow LED turns on |
-| Humidity in medium range | Humidity detector reads 35-50% | Green LED turns on |
+| Humidity in high range | Humidity detector reads 55-60% | Yellow LED turns on |
+| Humidity in medium range | Humidity detector reads 35-55% | Green LED turns on |
 | Humidity in low range | Humidity detector reads 30-35% | Yellow LED turns on |
 | Humidity too cold | Humidity detector reads below 30% | Blue LED turns on. After 1 minute a low-pitched buzzer turns on |
 | Sharp clap detected | Sound sensor detects hertz between 2200 and 2800 | All buzzers are disabled and turned off for 10 minutes | 
@@ -127,7 +127,7 @@ digital = Pin(18,Pin.IN, Pin.PULL_UP) # This is the setup for the sound sensor
 led = Pin(16, Pin.OUT) # This is setup for the test LED
 led.value(0) # The LED begins off
 
-print("KY-038 Microphone test")
+print("KY-037 Microphone test")
 
 
 """ This while loop is reading the environment every 0.1 seconds to check for any sounds, specifically sharp sounds, which will turn the test LED on """
@@ -144,6 +144,71 @@ while True: # Continues until break occurs
 """ This unsure circumstance between the LED values will be fixed in a later evaluation. """
 ```
 # Testing and Debugging
+### Test 1: Too High 
+``` Python
+""" The first test I'm going to try is the test case of if it is too hot, or humid, a red LED will turn on. We will do the buzzer next once this works. """
 
+from machine import Pin
+from utime import sleep
+from dht import DHT11
+
+dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
+red_led = Pin(27, Pin.OUT)
+issue = ""
+
+def condition_read():
+    dht11_sensor.measure()
+    temp = dht11_sensor.temperature()
+    humi = dht11_sensor.humidity()
+    print("Temperature: {}°C   Humidity: {:.0f}% ".format(temp, humi))
+    print()
+    sleep(2)
+
+def too_high():
+    while temp > 22 or humi > 60:
+        red_led.value(1)
+        condition_read()
+        
+while True:
+    temp = dht11_sensor.temperature()
+    humi = dht11_sensor.humidity()
+    condition_read()
+    
+    if temp > 22:
+        issue = "temperature"
+        too_high()
+    if humi > 60:
+        issue = "humidity"
+        too_high()
+        
+    red_led.value(0)
+```
+Both of these test cases worked (2/11 test cases half-complete)
+
+(From now on, I will add to this code until the sound sensor, where I will use my main.py code.)
+### Test 2: Too High (with buzzers)
+``` Python
+
+```
+
+### Test 3: Other LEDs (Warning, Just Right & Too Low)
+``` Python
+
+```
+
+### Test 4: Sound Detection
+``` Python
+
+```
+
+### Test 5: Putting it all together
+``` Python
+
+```
+
+### Test 6: Cleanup and Quality of Life
+``` Python
+
+```
 
 # Evaluation
