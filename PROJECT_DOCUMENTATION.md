@@ -97,19 +97,79 @@ END clap_detect()
 
 # Development and Integration
 ``` Python
-""" The purpose of this successful test was to see if the sound sensor would work when a sharp sound (like a clap or snap of fingers) would activate a random LED. This is the combination of the future sound sensor and a look at the main loop & how LEDs will react """
+""" The purpose of this successful test was to see if the sound sensor would work when a sharp sound (like a clap or snap of fingers) would activate a random LED. This is the combination of the future sound sensor and a look at the main loop & how LEDs will react, and then to add LEDs and the temperature/humidity sensor. """
 
-from machine import Pin, ADC # Connects the Raspberry Pi pins to Thonny
+from machine import Pin, PWM # Connects the Raspberry Pi pins to Thonny
 from time import sleep # Allows for the use of the sleep() function
 
 # Initialization of GPIO18 as input
 digital = Pin(18,Pin.IN, Pin.PULL_UP) # This is the setup for the sound sensor
-led = Pin(16, Pin.OUT) # This is setup for the test LED
-led.value(0) # The LED begins off
+r_led = Pin(16, Pin.OUT)
+y_led = Pin(15, Pin.OUT)
+g_led = Pin(14, Pin.OUT)
+b_led = Pin(13, Pin.OUT)
+
+r_led.value(0)
+y_led.value(0)
+g_led.value(0)
+b_led.value(0) # The LED begins off
 
 print("KY-037 Microphone test")
 
+def too_high():
+    while temperature > 22 or humidity > 60:
+        current_led = red_led
+        clap_detect()    
 
+        if clap_detect == True:
+            red_led.value(0)
+            # buzzer.value(0)
+            break
+
+        red_led.value(1)
+        condition_read()
+
+def warning():
+    while True:
+        current_led = yellow_led
+        clap_detect()   
+
+        if clap_detect == True:
+            yellow_led.value(0)
+            break
+        else:
+            yellow_led.value(1)
+
+        condition_read()
+
+def just_right():
+    while True:
+        current_led = green_led
+        clap_detect()       
+
+        if clap_detect == True:
+            green_led.value(0)
+            break
+        else:
+            green_led.value(1)
+
+        condition_read()
+
+def too_low():
+    while True:
+        current_led = blue_led
+        clap_detect()       
+
+        if clap_detect == True:
+            blue_led.value(0)
+            # buzzer.value(0)
+            break
+        else:
+            blue_led.value(1)
+            sleep(60)
+            # buzzer.value(1)
+
+        condition_read()
 """ This while loop is reading the environment every 0.1 seconds to check for any sounds, specifically sharp sounds, which will turn the test LED on """
 
 while True: # Continues until break occurs
@@ -120,10 +180,52 @@ while True: # Continues until break occurs
         sleep(0.1)
     else:
         led.value(1) # Unsure why, but this keeps the LED off
+    if temperature > 22:
+            issue = "temperature"
+            too_high()         
+    elif temperature == 22 or temperature == 15:
+            issue = "temperature"
+            warning()
+    elif 15 > temperature > 22:
+            issue = "temperature"
+            just_right()
+    else:
+            issue = "temperature"
+            too_low()
+
+
+    """ This is where humidity will go """
+    if humidity > 60:
+            issue = "humidity"
+            too_high()
+    elif 55 >= humidity >= 60 or 30 >= humidity >= 35:
+            issue = "humidity"
+            warning()
+    elif 35 > humidity > 55:
+            issue = "humidity"
+            just_right()
+    else:
+            issue = "humidity"
+            too_low()  
 
 """ This unsure circumstance between the LED values will be fixed in a later evaluation. """
 ```
 # Testing and Debugging
+## Case Outlines
+### Test Case 1 - Too Hot
+I added this function into my code, however it doesn't include the implementation of the buzzer, or the timer that goes with it.
+### Test Case 2 & 4 - Nearly Too Hot and Nearly too Cold
+My warning function works smoothly, and completely fulfills the test case requirements. However, the functionality of the warning could be enhanced with a single buzzer sound instead of a continuous alarm. 
+### Test Case 3 - Just Right Temperature
+Similar to the warning function, the just_right function works smoothly, and won't need any buzzers as it is safe range. The range could possibly be increased but it's good for now.
+### Test Case 5 - Too Cold
+Similar to the too_hot function, this one will need a buzzer, however one with lower pitch so that there is a distinguishable difference between the two.
+### Test Cases 6 - 10 - Humidity
+These test cases are almost exact copies of the the first 5, however they are with humidity. This one will be harder to measure, and I will require the purchase of a humidity sensor to fulfill my original requirements.
+### Test Case 11 - The Sound Sensor
+As of now, the sound sensor works, however it only works in turning on an LED for a split second. Therefore, I will have to problem solve and figure out some ways to get it to turn off buzzers and LEDs. One way is to generally 'reverse' the current code so that it sets a value to 0 instead of 1. Alternatively, I could research properties between Raspberry Pi Pico sensors to see if there's anything else that could result in a successful clap. I also have to keep in mind the hertz range, which was researched by looking up how much hertz a shark sound (like a clap) is.
+
+## Tests
 ### Test 1: Too High 
 ``` Python
 """ The first test I'm going to try is the test case of if it is too hot, or humid, a red LED will turn on. We will do the buzzer next once this works. """
@@ -173,7 +275,7 @@ while True: # This is the main loop, which will eventually be in the main functi
 
 Both of these test cases worked (2/11 test cases half-complete)
 
-(From now on, I will add to this code until the sound sensor, where I will use my main.py code.)
+(From now on, I will add to this code instead of seperating them so I can lay the groundwork and move up to the sound sensor.)
 ### Test 2: Too High (with buzzers)
 ``` Python
 """ Not as much was added in this test, however this leaves the groundwork for all future LED test cases. The main focus of this was to test the buzzer and implement a timer function. """
@@ -356,5 +458,16 @@ while True:
 ``` Python
 
 ```
+
+## Test Case Evaluations
+### Test Cases 1 and 6: too_high() Function:
+
+### Test Cases 2, 4, 7 and 9: warning() Function:
+
+### Test Cases 3 and 8: just_right() Function:
+
+### Test Cases 5 and 10: too_low() Function:
+
+### Test Case 11: clap_detect() Function:
 
 # Evaluation
