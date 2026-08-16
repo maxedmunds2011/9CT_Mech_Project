@@ -446,15 +446,128 @@ while True:
 10/11 Test Cases complete. Hardest one left.
 ### Test 4: Sound Detection
 ``` Python
+""" In this test, I debugged the final test case - the sound sensor. However, I had a different original idea, which was inspired by the site https://sensorkit.joy-it.net/en/sensors/ky-037. This sample code was just to check if something was on or off, which I adapted into turning on the LED. However, this became more of a challenge with a full-flowing loop, so I created a very simple first model that will be enhanced to set a timer to the buzzer being used again. This ome just included the return part of the function and the turning off of a buzzer, however this will expand to LEDs too."""
 
+from machine import Pin, PWM, Timer
+from utime import sleep
+from dht import DHT11
+
+digital = Pin(18, Pin.IN, Pin.PULL_UP) # Sets up the sound sensor pin
+dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
+pwm = PWM(Pin(13))
+
+t_yellow_led = Pin(16, Pin.OUT)
+t_blue_led = Pin(26, Pin.OUT)
+t_red_led = Pin(27, Pin.OUT)
+t_green_led = Pin(28, Pin.OUT)
+
+h_red_led = Pin(0, Pin.OUT)
+h_yellow_led = Pin(1, Pin.OUT)
+h_green_led = Pin(2, Pin.OUT)
+h_blue_led = Pin(3, Pin.OUT)
+
+""" When designing the sound sensor, I ran into a problem regarding the buzzer - the timer would reset every time the temperature and humidity were checked, which led to no buzzer. To fix this, I created a True/False statement that read if the buzzer was active, and if it was the timer would continue. """
+
+buzzer_timer = Timer()
+buzzer_active = False # The variable used to see if the timer could be turned on
+
+LEDs = [t_yellow_led, t_blue_led, t_red_led, t_green_led, h_red_led, h_yellow_led, h_green_led, h_blue_led]
+
+def clap_detect(): # My very early function that will be enhanced later, most likely with a true/false variable
+    return digital.value() == 1 # Reads the value, and if it gets signal, the function returns
+
+def toggle_buzzer(timer): # I created a toggle_buzzer timer to create the alarm sound and link to callback
+    if pwm.duty_u16() == 0:
+        pwm.duty_u16(32768)
+    else:
+        pwm.duty_u16(0)
+
+def minute(timer):
+    buzzer_timer.init(mode=Timer.PERIODIC, period=1000, callback=toggle_buzzer)
+
+def start_buzzer(freq=800):
+    global buzzer_active # Used the in-built global function to allow its use outside of the main loop
+    if buzzer_active: # Returns if the buzzer is active
+        return
+    buzzer_active = True # Sets buzzer to true
+    pwm.freq(freq)
+    buzzer_timer.init(mode=Timer.ONE_SHOT, period=60000, callback=minute)
+
+def stop_buzzer(): # I used the same code as I added in the start_buzzer function to turn this off
+    global buzzer_active 
+    buzzer_active = False
+    buzzer_timer.deinit()
+    pwm.duty_u16(0)
+
+def condition_read():
+    dht11_sensor.measure()
+    temp = dht11_sensor.temperature()
+    humi = dht11_sensor.humidity()
+    print("Temperature: {}°C   Humidity: {:.0f}% ".format(temp, humi))
+    print()
+    return temp, humi
+
+def too_high(t=False, h=False):
+    start_buzzer(800) # Now the frequency is attached to the buzzer, not the period_ms part
+    if t:
+        t_red_led.value(1)
+    if h:
+        h_red_led.value(1)
+
+def warning(t=False, h=False):
+    if t:
+        t_yellow_led.value(1)
+    if h:
+        h_yellow_led.value(1)
+
+def just_right(t=False, h=False):
+    if t:
+        t_green_led.value(1)
+    if h:
+        h_green_led.value(1)
+
+def too_low(t=False, h=False):
+    start_buzzer(500) # Buzzer at a lower frequency
+    if t:
+        t_blue_led.value(1)
+    if h:
+        h_blue_led.value(1)
+
+while True:
+    for x in LEDs:
+        x.value(0)
+
+    dht11_sensor.measure()
+    temp = dht11_sensor.temperature()
+    humi = dht11_sensor.humidity()
+
+    print("Temperature: {}°C  Humidity: {}%".format(temp, humi))
+
+    if clap_detect(): # Here is the link between the function and main loop where the buzzer turns off (turns the variable to False)
+        stop_buzzer()
+
+    if temp > 22:
+        too_high(t=True)
+    elif temp == 22 or temp == 15:
+        warning(t=True)
+    elif 15 < temp < 22:
+        just_right(t=True)
+    else:
+        too_low(t=True)
+
+    if humi > 60:
+        too_high(h=True)
+    elif (55 <= humi <= 60) or (30 <= humi <= 35):
+        warning(h=True)
+    elif 35 < humi <= 55:
+        just_right(h=True)
+    else:
+        too_low(h=True)
+
+    sleep(2)
 ```
-
-### Test 5: Putting it all together
-``` Python
-
-```
-
-### Test 6: Cleanup and Quality of Life
+All test cases complete. However, there are ways that will improve the usefulness, accuracy and reliability of this robot.
+### Test 5: Cleanup and Quality of Life
 ``` Python
 
 ```
