@@ -1,39 +1,93 @@
-# Add imports here (machine, time, etc.)
-from machine import Pin, Timer, PWM # Connects the Raspberry Pi pins to Thonny # Allows for the use of the sleep() function
-from utime import sleep # Allows the implementation of the in-built sleep() function
+from machine import Pin, PWM, Timer
+from utime import sleep
 from dht import DHT11
 
-
-# Add variables here (temperature_control, moisture_control, led_control, buzzer_control, etc.)
-temperature = ""
-humidity = ""
-issue = ""
-current_led = ""
-
-pwm = PWM(Pin(9)) 
+digital = Pin(18, Pin.IN, Pin.PULL_UP)
 dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
-yellow_led = Pin(16, Pin.OUT)
-digital = Pin(18,Pin.IN, Pin.PULL_UP) # This is the setup for the sound sensor
-blue_led = Pin(26, Pin.OUT)
-red_led = Pin(27, Pin.OUT)
-green_led = Pin(28, Pin.OUT)
 
+pwm1 = PWM(Pin(13))
+pwm1.duty_u16(0)
+pwm2 = PWM(Pin(9))
+pwm2.duty_u16(0)
 
-red_led.value(0) # The LED begins off
-yellow_led.value(0)
-green_led.value(0)
-blue_led.value(0)
+t_blue_led = Pin(26, Pin.OUT)
+t_red_led = Pin(27, Pin.OUT)
+t_green_led = Pin(28, Pin.OUT)
 
-pwm.freq(800)
+h_red_led = Pin(15, Pin.OUT)
+h_green_led = Pin(12, Pin.OUT)
+h_blue_led = Pin(11, Pin.OUT)
 
+buzzerstart_timer = Timer()
+buzzerwait_timer = Timer()
+clap_timer = Timer()
+buzzer_on = False
+led_active = True
+led_timer = Timer()
+buzzer_silenced = False
+clap_active = True
 
-def minute(timer): # This timer correlates to the mode seen later
-    while True: # Ensures that the buzzer continues even after the timer has reset
-        pwm.duty_u16(32768) # Half of 35535, half volume
-        sleep(1) 
-        pwm.duty_u16(0) # no volume, creates an alarm sound
-        sleep(1)
+t_buzzer = False
+h_buzzer = False
 
+LEDs = [t_blue_led, t_red_led, t_green_led, h_red_led, h_green_led, h_blue_led]
+
+def all_leds_off():
+    for x in LEDs:
+        x.value(0)
+
+def clap_detect():
+    global clap_active
+    if clap_active == True:
+        return digital.value() == 1 
+
+def toggle_buzzer(timer):
+    if pwm1.duty_u16() == 0:
+        pwm1.duty_u16(32768)
+    else:
+        pwm1.duty_u16(0)
+    if pwm2.duty_u16() == 0:
+        pwm2.duty_u16(32768)
+    else:
+        pwm2.duty_u16(0)
+
+def minute(timer):
+    buzzerstart_timer.init(mode=Timer.PERIODIC, period=1000, callback=toggle_buzzer)
+    
+def minute_5(timer):
+    global buzzer_silenced
+    buzzer_silenced = False
+
+def sixth_minute(timer):
+    global clap_active, led_active
+    clap_active = True
+    led_active = True
+    
+def buzzer_cooldown():
+    global buzzer_silenced
+    buzzer_silenced = True
+    buzzerwait_timer.init(mode=Timer.ONE_SHOT, period=5 * 60 * 1000, callback=minute_5)
+    
+def clap_cooldown():
+    global clap_active
+    clap_active = False
+    clap_timer.init(mode=Timer.ONE_SHOT, period=10 * 1000, callback=sixth_minute)
+
+def start_buzzer():
+    global buzzer_on
+    buzzer_on = True
+    buzzerstart_timer.init(mode=Timer.ONE_SHOT, period=60 * 1000, callback=minute)
+
+def stop_buzzer():
+    global buzzer_on
+    buzzer_on = False
+    buzzerstart_timer.deinit()
+    pwm1.duty_u16(0)
+    
+def stop_led():
+    all_leds_off()
+    led_active = False
+    led_timer.init(mode=Timer.ONE_SHOT, period=10 * 1000, callback=sixth_minute)
 
 def condition_read():
     dht11_sensor.measure()
@@ -41,133 +95,81 @@ def condition_read():
     humi = dht11_sensor.humidity()
     print("Temperature: {}°C   Humidity: {:.0f}% ".format(temp, humi))
     print()
+    return temp, humi
+
+def too_high(t=False, h=False):
+    pwm1.freq(800)
+    if buzzer_on == False:
+        start_buzzer()
+    if led_active == True:
+        if t:
+            t_red_led.value(1)
+        if h:
+            h_red_led.value(1)
+
+def warning(t=False, h=False):
+    if t_buzzer == True:
+        buzzer_off()
+    if h_buzzer == True:
+        buzzer_off()
+    if led_active == True:
+        if t:
+            t_red_led.value(1)
+            t_green_led.value(1)
+        if h:
+            h_red_led.value(1)
+            h_green_led.value(1)
+
+def just_right(t=False, h=False):
+    if t_buzzer == True:
+        buzzer_off()
+    if h_buzzer == True:
+        buzzer_off()
+    if led_active == True:
+        if t:
+            t_green_led.value(1)
+        if h:
+            h_green_led.value(1)
+
+def too_low(t=False, h=False):
+    pwm1.freq(500)
+    if buzzer_on == False:
+        start_buzzer()
+    if led_active == True:
+        if t:
+            t_blue_led.value(1)
+        if h:
+            h_blue_led.value(1)
+
+while True:
+    all_leds_off()
+
+    dht11_sensor.measure()
+    temp = dht11_sensor.temperature()
+    humi = dht11_sensor.humidity()
+
+    print("Temperature: {}°C  Humidity: {}%".format(temp, humi))
+    
+    if temp > 22:
+        t_buzzer = True
+        too_high(t=True)  
+    elif temp == 22 or temp == 15:
+        warning(t=True)
+    elif 15 < temp < 22:
+        just_right(t=True)
+    else:
+        too_low(t=True)
+        t_buzzer = True
+
+    if humi > 60:
+        too_high(h=True)
+        h_buzzer = True
+    elif (55 <= humi <= 60) or (30 <= humi <= 35):
+        warning(h=True)
+    elif 35 < humi <= 55:
+        just_right(h=True)
+    else:
+        too_low(h=True)
+        h_buzzer = True
+
     sleep(2)
-
-
-def clap_detect():
-    while True: # Continues until break occurs
-        digital_value = digital.value() # Creating a variable based on the sound sensor input
-        print(digital_value) # Used as a test to see the difference in binary
-
-        if digital_value == 1: # The digital value at 1 represents a noise being made
-            (current_led).value(0)
-            sleep(0.1)
-        else:
-            (current_led).value(1)
-
-
-def too_high():
-    timer = Timer() # Assigns the timer to the in-built function
-    timer.init(mode=Timer.PERIODIC, period = 60000, callback=minute)
-    while temperature > 22 or humidity > 60:
-        current_led = red_led
-        clap_detect()    
-
-        if clap_detect == True:
-            red_led.value(0)
-            # buzzer.value(0)
-            break
-
-        red_led.value(1)
-        condition_read()
-
-
-def warning():
-    while True:
-        current_led = yellow_led
-        clap_detect()   
-
-        if clap_detect == True:
-            yellow_led.value(0)
-            break
-        else:
-            yellow_led.value(1)
-
-        condition_read()
-        if issue == "temperature":
-            if temperature != 22 or temperature != 15:
-                break
-        elif issue == "humidity":
-            if humidity < 30 or 35 < humidity < 55 or humidity > 60:
-                break
-
-
-def just_right():
-    while True:
-        current_led = green_led
-        clap_detect()       
-
-        if clap_detect == True:
-            green_led.value(0)
-            break
-        else:
-            green_led.value(1)
-
-        condition_read()
-        if issue == "temperature":
-            if temperature <= 15 or temperature >= 22:
-                break
-        elif issue == "humidity":
-            if humidity <= 35 or humidity >= 55:
-                break
-
-
-def too_low():
-    while True:
-        current_led = blue_led
-        clap_detect()       
-
-        if clap_detect == True:
-            blue_led.value(0)
-            # buzzer.value(0)
-            break
-        else:
-            blue_led.value(1)
-            sleep(60)
-            # buzzer.value(1)
-
-        condition_read()
-        if issue == "temperature":
-            if temperature >= 15:
-                break
-        elif issue == "humidity":
-            if humidity >= 35:
-                break
-
-
-def main():
-    while True:
-        # Perform measurement
-        condition_read()
-        temperature = dht11_sensor.temperature()
-        humidity = dht11_sensor.humidity()
-
-        if temperature > 22:
-            issue = "temperature"
-            too_high()         
-        elif temperature == 22 or temperature == 15:
-            issue = "temperature"
-            warning()
-        elif 15 > temperature > 22:
-            issue = "temperature"
-            just_right()
-        else:
-            issue = "temperature"
-            too_low()
-
-
-        """ This is where humidity will go """
-        if humidity > 60:
-            issue = "humidity"
-            too_high()
-        elif 55 >= humidity >= 60 or 30 >= humidity >= 35:
-            issue = "humidity"
-            warning()
-        elif 35 > humidity > 55:
-            issue = "humidity"
-            just_right()
-        else:
-            issue = "humidity"
-            too_low()        
-
-main()
