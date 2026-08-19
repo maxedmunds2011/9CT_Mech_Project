@@ -446,108 +446,163 @@ while True:
 10/11 Test Cases complete. Hardest one left.
 ### Test 4: Sound Detection
 ``` Python
-""" In this test, I debugged the final test case - the sound sensor. However, I had a different original idea, which was inspired by the site https://sensorkit.joy-it.net/en/sensors/ky-037. This sample code was just to check if something was on or off, which I adapted into turning on the LED. However, this became more of a challenge with a full-flowing loop, so I created a very simple first model that will be enhanced to set a timer to the buzzer being used again. This ome just included the return part of the function and the turning off of a buzzer, however this will expand to LEDs too."""
-
 from machine import Pin, PWM, Timer
 from utime import sleep
 from dht import DHT11
 
-digital = Pin(18, Pin.IN, Pin.PULL_UP) # Sets up the sound sensor pin
+digital = Pin(18, Pin.IN, Pin.PULL_UP)
 dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
-pwm = PWM(Pin(13))
 
-t_yellow_led = Pin(16, Pin.OUT)
+pwm1 = PWM(Pin(13))
+pwm1.duty_u16(0)
+pwm2 = PWM(Pin(9))
+pwm2.duty_u16(0)
+
 t_blue_led = Pin(26, Pin.OUT)
 t_red_led = Pin(27, Pin.OUT)
 t_green_led = Pin(28, Pin.OUT)
 
-h_red_led = Pin(0, Pin.OUT)
-h_yellow_led = Pin(1, Pin.OUT)
-h_green_led = Pin(2, Pin.OUT)
-h_blue_led = Pin(3, Pin.OUT)
+h_red_led = Pin(15, Pin.OUT)
+h_green_led = Pin(12, Pin.OUT)
+h_blue_led = Pin(11, Pin.OUT)
 
-""" When designing the sound sensor, I ran into a problem regarding the buzzer - the timer would reset every time the temperature and humidity were checked, which led to no buzzer. To fix this, I created a True/False statement that read if the buzzer was active, and if it was the timer would continue. """
+buzzerstart1_timer = Timer()
+buzzerstart2_timer = Timer()
+buzzerwait_timer = Timer()
+clap_timer = Timer()
+buzzer1_on = False
+buzzer2_on = False
+buzzer_silenced = False
+clap_silenced = False
+buzz = ""
 
-buzzer_timer = Timer()
-buzzer_active = False # The variable used to see if the timer could be turned on
+t_buzzer = False
+h_buzzer = False
 
-LEDs = [t_yellow_led, t_blue_led, t_red_led, t_green_led, h_red_led, h_yellow_led, h_green_led, h_blue_led]
 
-def clap_detect(): # My very early function that will be enhanced later, most likely with a true/false variable
-    return digital.value() == 1 # Reads the value, and if it gets signal, the function returns
+LEDs = [t_blue_led, t_red_led, t_green_led, h_red_led, h_green_led, h_blue_led]
 
-def toggle_buzzer(timer): # I created a toggle_buzzer timer to create the alarm sound and link to callback
-    if pwm.duty_u16() == 0:
-        pwm.duty_u16(32768)
+def all_leds_off():
+    for x in LEDs:
+        (x).value(0)
+    
+def clap_detect():
+    global clap_active
+    if clap_active == True:
+        return digital.value() == 1 
+
+def toggle_buzzer1(timer):
+    if pwm1.duty_u16() == 0:
+        pwm1.duty_u16(32768)
     else:
-        pwm.duty_u16(0)
+        pwm1.duty_u16(0)
+        
+def toggle_buzzer2(timer):
+    if pwm2.duty_u16() == 0:
+        pwm2.duty_u16(32768)
+    else:
+        pwm2.duty_u16(0)
 
-def minute(timer):
-    buzzer_timer.init(mode=Timer.PERIODIC, period=1000, callback=toggle_buzzer)
+def minute1(timer):
+    buzzerstart1_timer.init(mode=Timer.PERIODIC, period=500, callback=toggle_buzzer1)
+    
+def minute2(timer):
+    buzzerstart2_timer.init(mode=Timer.PERIODIC, period=500, callback=toggle_buzzer2)
+    
+def start_buzzer1():
+    global buzzer1_on
+    buzzer1_on = True
+    buzzerstart1_timer.init(mode=Timer.PERIODIC, period=60 * 1000, callback=minute1)
+    
+def start_buzzer2():
+    global buzzer2_on
+    buzzer2_on = True
+    buzzerstart2_timer.init(mode=Timer.PERIODIC, period=60 * 1000, callback=minute2)  
+    
+def stop_buzzer1():
+    global buzzer1_on
+    buzzer1_on = False
+    buzzerstart1_timer.deinit()
+    pwm1.duty_u16(0)
+    
+def stop_buzzer2():
+    global buzzer2_on
+    buzzer2_on = False
+    buzzerstart2_timer.deinit()
+    pwm2.duty_u16(0) 
+    
+def minute_5(timer):
+    global buzzer_silenced, clap_silenced
+    buzzer_silenced = False
+    clap_silenced = False
+    
+def cooldown():
+    buzzerwait_timer.init(mode=Timer.ONE_SHOT, period=5 * 60 * 1000, callback=minute_5)
 
-def start_buzzer(freq=800):
-    global buzzer_active # Used the in-built global function to allow its use outside of the main loop
-    if buzzer_active: # Returns if the buzzer is active
-        return
-    buzzer_active = True # Sets buzzer to true
-    pwm.freq(freq)
-    buzzer_timer.init(mode=Timer.ONE_SHOT, period=60000, callback=minute)
+def sound_detected(pin):
+    global clap_silenced, buzzer_silenced
+    if clap_silenced == False:
+        buzzer_silenced = True
+        clap_silenced = True
+        stop_buzzer1()
+        stop_buzzer2()
+        cooldown()
 
-def stop_buzzer(): # I used the same code as I added in the start_buzzer function to turn this off
-    global buzzer_active 
-    buzzer_active = False
-    buzzer_timer.deinit()
-    pwm.duty_u16(0)
-
-def condition_read():
-    dht11_sensor.measure()
-    temp = dht11_sensor.temperature()
-    humi = dht11_sensor.humidity()
-    print("Temperature: {}°C   Humidity: {:.0f}% ".format(temp, humi))
-    print()
-    return temp, humi
+digital.irq(trigger=Pin.IRQ_RISING, handler=sound_detected)
 
 def too_high(t=False, h=False):
-    start_buzzer(800) # Now the frequency is attached to the buzzer, not the period_ms part
     if t:
+        if buzzer_silenced == False:
+            pwm1.freq(800)
+            start_buzzer1()
         t_red_led.value(1)
     if h:
+        if buzzer_silenced == False:
+            pwm2.freq(800)
+            start_buzzer2()
         h_red_led.value(1)
 
 def warning(t=False, h=False):
     if t:
-        t_yellow_led.value(1)
+        stop_buzzer1()
+        t_red_led.value(1)
+        t_green_led.value(1)
     if h:
-        h_yellow_led.value(1)
+        stop_buzzer2()
+        h_red_led.value(1)
+        h_green_led.value(1)
 
 def just_right(t=False, h=False):
     if t:
+        stop_buzzer1()
         t_green_led.value(1)
     if h:
+        stop_buzzer2()
         h_green_led.value(1)
 
 def too_low(t=False, h=False):
-    start_buzzer(500) # Buzzer at a lower frequency
     if t:
+        if buzzer_silenced == False:
+            pwm1.freq(500)
+            start_buzzer1()
         t_blue_led.value(1)
     if h:
+        if buzzer_silenced == False:
+            pwm2.freq(500)
+            start_buzzer2()
         h_blue_led.value(1)
 
 while True:
-    for x in LEDs:
-        x.value(0)
-
+    all_leds_off()
+    
     dht11_sensor.measure()
     temp = dht11_sensor.temperature()
     humi = dht11_sensor.humidity()
-
-    print("Temperature: {}°C  Humidity: {}%".format(temp, humi))
-
-    if clap_detect(): # Here is the link between the function and main loop where the buzzer turns off (turns the variable to False)
-        stop_buzzer()
-
+    print("Temperature: {}°C   Humidity: {:.0f}% ".format(temp, humi))
+    print() 
+    
     if temp > 22:
-        too_high(t=True)
+        too_high(t=True)   
     elif temp == 22 or temp == 15:
         warning(t=True)
     elif 15 < temp < 22:
