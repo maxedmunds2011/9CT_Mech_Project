@@ -278,7 +278,7 @@ Both of these test cases worked (2/11 test cases half-complete)
 (From now on, I will add to this code instead of seperating them so I can lay the groundwork and move up to the sound sensor.)
 ### Test 2: Too High (with buzzers)
 ``` Python
-""" Not as much was added in this test, however this leaves the groundwork for all future LED test cases. The main focus of this was to test the buzzer and implement a timer function. """
+""" Not as much was added in this test, however this leaves the groundwork for all future LED test cases. The main focus of this was to test the buzzer and implement a timer function. This was done with the research in the second part of: https://randomnerdtutorials.com/raspberry-pi-pico-interrupts-micropython/. """
 from machine import Pin, PWM, Timer # Adds the Timer import for the in-built timer function
 from utime import sleep
 from dht import DHT11
