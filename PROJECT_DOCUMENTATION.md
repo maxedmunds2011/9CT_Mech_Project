@@ -444,20 +444,24 @@ while True:
 """ This update was huge, allowing for change in LEDs every 2 seconds, allowance to turn the buzzer off, and most importantly, the ability to view the state of both temperature and humidity seperately. """
 ```
 10/11 Test Cases complete. Hardest one left.
-### Test 4: Sound Detection
+### Test 4: Sound Detection & Final Cleanup
 ``` Python
+""" This code is the final one for my project to fully work. There were three main things that were achieved in this. Firstly, I switched out the yellow LEDs for the RGB (using a combination of red and green) to clean up the code. I got the RGB information from https://randomnerdtutorials.com/electronics-basics-how-do-rgb-leds-work/. 
+The second thing I did was the inclusion of a second buzzer for humidity, which the code was difficult to work through, so eventually I created two different pathways for the two buzzers.
+The final and most important addition in this test was the completion of the final test case - the sound sensor. This was done with interrupts (learnt from: https://randomnerdtutorials.com/raspberry-pi-pico-interrupts-micropython/) so that the sound buzzer could detect claps throughout the loop instead of at a specific time. """
 from machine import Pin, PWM, Timer
 from utime import sleep
 from dht import DHT11
 
-digital = Pin(18, Pin.IN, Pin.PULL_UP)
+digital = Pin(18, Pin.IN, Pin.PULL_UP) # Sound sensor pin
 dht11_sensor = DHT11(Pin(14, Pin.IN, Pin.PULL_UP))
 
 pwm1 = PWM(Pin(13))
 pwm1.duty_u16(0)
-pwm2 = PWM(Pin(9))
+pwm2 = PWM(Pin(9)) # Inclusion of second buzzer
 pwm2.duty_u16(0)
 
+""" As you can see here, there is just blue, red and green, as yellow can be made from a combination of red and green, freeing up space. """
 t_blue_led = Pin(26, Pin.OUT)
 t_red_led = Pin(27, Pin.OUT)
 t_green_led = Pin(28, Pin.OUT)
@@ -467,17 +471,12 @@ h_green_led = Pin(12, Pin.OUT)
 h_blue_led = Pin(11, Pin.OUT)
 
 buzzerstart1_timer = Timer()
-buzzerstart2_timer = Timer()
+buzzerstart2_timer = Timer() # This, along with the two below, were created to seperate the temperature and humidity flows. 
 buzzerwait_timer = Timer()
-clap_timer = Timer()
 buzzer1_on = False
 buzzer2_on = False
 buzzer_silenced = False
 clap_silenced = False
-buzz = ""
-
-t_buzzer = False
-h_buzzer = False
 
 
 LEDs = [t_blue_led, t_red_led, t_green_led, h_red_led, h_green_led, h_blue_led]
@@ -485,12 +484,11 @@ LEDs = [t_blue_led, t_red_led, t_green_led, h_red_led, h_green_led, h_blue_led]
 def all_leds_off():
     for x in LEDs:
         (x).value(0)
-    
-def clap_detect():
-    global clap_active
-    if clap_active == True:
-        return digital.value() == 1 
 
+""" With these next 8 functions, they are the same as the other one with the linking name, but one flow is for the temperature (the ones) and the other is for the humidity (the 2s). This allows for the use of two buzzers at once depending on the circumstances. I added some functions to better handle this process. 
+- The toggle_buzzer functions create the beeping sound instead of a straight, uninterrupted one
+- The minute functions have been adapted to act as the beeping periods for the buzzer.
+- The start_buzzer and stop_buzzer functions stayed mostly similar except that they removed the global variable and focused on individual ones - the buzzer_on variables. """
 def toggle_buzzer1(timer):
     if pwm1.duty_u16() == 0:
         pwm1.duty_u16(32768)
@@ -504,14 +502,14 @@ def toggle_buzzer2(timer):
         pwm2.duty_u16(0)
 
 def minute1(timer):
-    buzzerstart1_timer.init(mode=Timer.PERIODIC, period=500, callback=toggle_buzzer1)
+    buzzerstart1_timer.init(mode=Timer.PERIODIC, period=500, callback=toggle_buzzer1) # Signifies the period in between beeping and stopping.
     
 def minute2(timer):
     buzzerstart2_timer.init(mode=Timer.PERIODIC, period=500, callback=toggle_buzzer2)
     
 def start_buzzer1():
     global buzzer1_on
-    buzzer1_on = True
+    buzzer1_on = True # Restates a variable
     buzzerstart1_timer.init(mode=Timer.PERIODIC, period=60 * 1000, callback=minute1)
     
 def start_buzzer2():
@@ -521,7 +519,7 @@ def start_buzzer2():
     
 def stop_buzzer1():
     global buzzer1_on
-    buzzer1_on = False
+    buzzer1_on = False # Restates a variable, but only after a clap has been detected or the temperature/humidity has changed
     buzzerstart1_timer.deinit()
     pwm1.duty_u16(0)
     
@@ -531,29 +529,32 @@ def stop_buzzer2():
     buzzerstart2_timer.deinit()
     pwm2.duty_u16(0) 
     
+""" This function and the cooldown function go hand-in-hand: the minute_5 is initiated after 5 minutes of buzzer silence and no claps, which allows for the continuation of buzzers afterwards. """
 def minute_5(timer):
     global buzzer_silenced, clap_silenced
-    buzzer_silenced = False
+    buzzer_silenced = False # Allows for claps and buzzers to work again
     clap_silenced = False
     
 def cooldown():
-    buzzerwait_timer.init(mode=Timer.ONE_SHOT, period=5 * 60 * 1000, callback=minute_5)
+    buzzerwait_timer.init(mode=Timer.ONE_SHOT, period=5 * 60 * 1000, callback=minute_5) # This means that the minute_5 function only occurs after 5 minutes of this timer being active
 
+""" This function acts as the gateway to all other functions related to the clapping of hands, and also to the line below about irq. When a clap is detected, this function is put to use and as long as you can still clap, everything but the leds and sensor is turned off with the cooldown function """
 def sound_detected(pin):
     global clap_silenced, buzzer_silenced
-    if clap_silenced == False:
+    if clap_silenced == False: # Ensures that this doesn't happen in the 5 minute break between claps, before running many functions
         buzzer_silenced = True
         clap_silenced = True
         stop_buzzer1()
         stop_buzzer2()
         cooldown()
 
-digital.irq(trigger=Pin.IRQ_RISING, handler=sound_detected)
+digital.irq(trigger=Pin.IRQ_RISING, handler=sound_detected) # This is an interrupt that, when the trigger is activated, the loop goes through the handler, in this case the sound_detected function
 
+""" For the too_high and too_low functions, the ability to activate the buzzer of their specific sensor is given as long as a cooldown is not taking place. Otherwise, the option is always given for the turning off of the respective buzzers in the warning and just_right functions. """
 def too_high(t=False, h=False):
-    if t:
-        if buzzer_silenced == False:
-            pwm1.freq(800)
+    if t: 
+        if buzzer_silenced == False: # Only works if the cooldown timer is not on
+            pwm1.freq(800) # Now the buzzer options are locked between what the sensor reads, instead of activating no matter the occasion (due to the one buzzer)
             start_buzzer1()
         t_red_led.value(1)
     if h:
@@ -564,7 +565,7 @@ def too_high(t=False, h=False):
 
 def warning(t=False, h=False):
     if t:
-        stop_buzzer1()
+        stop_buzzer1() # Instead of being kept behind a True/False variable, these next two functions always use the stop_buzzer functions as it doesn't impact anything even with the buzzer silenced
         t_red_led.value(1)
         t_green_led.value(1)
     if h:
@@ -592,6 +593,7 @@ def too_low(t=False, h=False):
             start_buzzer2()
         h_blue_led.value(1)
 
+""" The main loop remained the same. """
 while True:
     all_leds_off()
     
@@ -620,22 +622,20 @@ while True:
         too_low(h=True)
 
     sleep(2)
+""" Additionally, I removed the condition_read function as it was only being used once and the temp and humi variables otherwise weren't defined. It could've been implemented, but it wouldn't affect anything major. """
 ```
-All test cases complete. However, there are ways that will improve the usefulness, accuracy and reliability of this robot.
-### Test 5: Cleanup and Quality of Life
-``` Python
-
-```
-
+All test cases complete. Now onto the evaluation.
 ## Test Case Evaluations
 ### Test Cases 1 and 6: too_high() Function:
-
+The too_high function was probably used the most out of any of the test cases. This was due to two things: my implementation of it first and the humidity levels that regularly exceeded 60%. Because of this, this function always worked perfectly from the get-go, as did all of the LED functions. In relation to the code, the red LED on the first RGB was originally quite dim, so I had to use a lower resistor to allow for a better output. In relation to the original test cases, it perfectly fulfulled all of the necessary requirements, and with the inclusion of a second LED, both can now work seamlessly side-by-side.
 ### Test Cases 2, 4, 7 and 9: warning() Function:
-
+The warning function was originally not going to make it into the code - it could've just been too hot, too cold and just right. However, I felt it was important for the user to get a more specific sense of where the temperature and humidity were at, instead of the light going straight from green to red or blue. This test case and the just_right function was difficult to correct especially in the making of the second buzzer (as the variables from humidity often crossed into temperature, and vice versa). In terms of the code, the yellow led was the most frustrating to work out because the RGB left it out (despite yellow being a primary colour). Thankfully, I researched a solution and now the code is much cleaner and easier to understand in case something wasn't working. There's nothing to complain about - this test case worked perfectly, however an improvement would be to have different shades of yellow to signify either the increase or decrease of environmental factors (however this wouldn't have been optimal for a Year 9 mech project).
 ### Test Cases 3 and 8: just_right() Function:
-
+There isn't much to talk about when it comes to this function - it basically mirrored the code for the warning function, except that it was significantly easier to make because of the green function on the RGB led. Due to this, all of the things that were said for the code of the warning function retains its meaning in this function. The green led was the most used by the temperature, proving that the temperature range made sense in the context of the project and issue of moisture. This range was obviously inspired by Mr Scott's sample code on his temperature test, while mine was broadened as humidity was the more pressing concern in this mechatronics project. Again, the test cases worked without issue and there is a seamless transition between this and the warning function labeled above.
 ### Test Cases 5 and 10: too_low() Function:
-
+Out of all the test cases I tested, these two were the hardest to debug. The temperature rarely dipped below 15 degrees in the day, and even at night it would have to be around ten o'clock before I could really see some progress. And the humidity never got below the green at all due to the higher-than-average green zone we created, a short-sighted mistake on my behalf, however not impacting the project that much. This was the least-used colour out of all four, and most of the changes to this function was first solved with the too_high function. However there was one prominent feature to test for these cases: the frequency of the buzzer. In the original test cases I wanted to make sure that there was a noticeable difference between the buzzer noises of too_high and too_low, even though the LED was there (the scenario could be for someone who is blind). Therefore, I created a lower frequency, not too low that it's quiet but not too high that it is commonly mistaken with the too_high buzzer. This concluded the LED test cases - this one worked successfully, though a definite improvement is to change the scale so that it dabbles into the too_high and too_low functions for an equal amount of time.
 ### Test Case 11: clap_detect() Function:
+This was most important test case of them all, which was why I put it in its own full test. The entire purpose of my solution was to create something that wouldn't require touch. No one wants to get out of what they're doing to turn an annoying buzzer off - so why don't they just clap to turn it off? Looking back, the test case is far too specific. The device can definitely detect something in that range, sure, but it can also detect anything louder. I should've rewritten the test case instead as 'sensitive enough so that a clap is still detected from 3 metres away' instead of going into volume, because volume changes over distances. However, the general idea of it succeeded - I managed to create a working system, and at the end of it, an easy way to turn it off. All of my credit goes to this site: https://sensorkit.joy-it.net/en/sensors/ky-038 and the help of my teammate Lucas to make sure the wires were in the right position - something even a Year 11 overlooked.
 
+There could be many improvements to be made with this device. It could temporarily turn off leds. There could be an additional buzzer to turn the claps and buzzers back on early in case someone was in a rush. However, my test case was almost perfectly completed (not including the hertz range), and the very completion of this is credit enough - I have removed the requirement to use touch for the turning off of a robot. If there was one thing I'd improve or add, it would be a way to fully turn off the system for events such as nighttime, but that's a job for the stop button.
 # Evaluation
