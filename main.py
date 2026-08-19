@@ -114,12 +114,12 @@ def all_leds_off():
 
 def too_high(t=False, h=False):
     if t:
-        if buzzer_silenced == False:
+        if buzzer_silenced == False and buzzer1_on == False:
             pwm1.freq(800)
             start_buzzer1()
         t_red_led.value(1)
     if h:
-        if buzzer_silenced == False:
+        if buzzer_silenced == False and buzzer2_on == False:
             pwm2.freq(800)
             start_buzzer2()
         h_red_led.value(1)
@@ -144,12 +144,12 @@ def just_right(t=False, h=False):
 
 def too_low(t=False, h=False):
     if t:
-        if buzzer_silenced == False:
+        if buzzer_silenced == False and buzzer1_on == False:
             pwm1.freq(500)
             start_buzzer1()
         t_blue_led.value(1)
     if h:
-        if buzzer_silenced == False:
+        if buzzer_silenced == False and buzzer2_on == False:
             pwm2.freq(500)
             start_buzzer2()
         h_blue_led.value(1)
