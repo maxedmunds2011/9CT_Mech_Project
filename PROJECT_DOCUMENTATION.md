@@ -27,7 +27,7 @@ A sound sensor detects a clap when the red LED or blue LED are turned on. At a c
 ## Test Cases
 | Test Case | Input     | Expected Output   |
 |---------- |---------- |----------------   |
-| Temperatue too hot | Temperature sensor reads above 22 degrees celsius | Red LED turns on. after 1 minute a high-pitched buzzer turns on |
+| Temperature too hot | Temperature sensor reads above 22 degrees celsius | Red LED turns on. after 1 minute a high-pitched buzzer turns on |
 | Temperature in high range | Temperature sensor reads 22 degrees celsius | Yellow LED turns on |
 | Temperature in medium range | Temperature sensor reads 16-21 degrees celsius | Green LED turns on |
 | Temperature in low range | Temperature sensor reads 15 degrees celsius | Yellow LED turns on |
@@ -40,7 +40,7 @@ A sound sensor detects a clap when the red LED or blue LED are turned on. At a c
 | Sharp clap detected | Sound sensor detects hertz between 2200 and 2800 | All buzzers are disabled and turned off for 10 minutes | 
 ## Non-Functional Requirements
 ### Efficiency:
-The robot will need to detect both the temperature and humidity using their respective sensor, doing this every 5 seconds for maximum efficiency. The clap should be detected every 0.1 seconds to ensure a fast and connected correlation. It can't run out of battery or randomly stop working in the middle of the day - it must remain consistently on throughout. All LEDs need to function properly and by themselves, attached to GPIO pins to reserve other pins for more the more important sensors.
+The robot will need to detect both the temperature and humidity using their respective sensor, doing this every 5 seconds for maximum efficiency. The clap should be detected every 0.1 seconds to ensure a fast and connected correlation. It can't run out of battery or randomly stop working in the middle of the day - it must remain consistently on throughout. All LEDs need to function properly and by themselves, attached to GPIO pins to reserve other pins for the more important sensors.
 ### Response Time
 The robot should detect the temperature and humidity respectively every 5 seconds for maximum efficiency. The clap should be detected every 0.1 seconds to ensure a fast and connected correlation. 
 ### Accuracy:
@@ -639,3 +639,22 @@ This was most important test case of them all, which was why I put it in its own
 
 There could be many improvements to be made with this device. It could temporarily turn off leds. There could be an additional buzzer to turn the claps and buzzers back on early in case someone was in a rush. However, my test case was almost perfectly completed (not including the hertz range), and the very completion of this is credit enough - I have removed the requirement to use touch for the turning off of a robot. If there was one thing I'd improve or add, it would be a way to fully turn off the system for events such as nighttime, but that's a job for the stop button.
 # Evaluation
+## Peer Evaluations
+| Plus | Minus | Evaluation |
+|----------|----------|----------------|
+| | |
+| | |
+## Final Evaluations:
+### Final Test in Relation to Functional Criteria
+My final test very accurately related to the functional criteria that I originally created, with additional parts that enhanced my robot. All LEDs work in sync with each other, changing to fit the sensor every two seconds (it would've been more beneficial if it could read the temperature and humidity faster, but the sensor physically can't). An improvement that could've been made was to specify the sound range so no extremely loud sounds turned off the system entirely. Many additions or tweaks were made to improve the system - the timer set after a clap was detected changed from 10 minutes to 5 minutes to still allow time to fix temperature and humidity while keeping it brief; and an additional warning switch was made between 30 and 35 percent for humidity so that the sensor wouldn't go from red directly into green, or vice versa. One thing that wasn't directly in the functional requirements but remained important was the link back to the issue of mould which should've been researched more.
+
+Overall, my final test fulfilled nearly all of the functional criteria well, and even though there are some things that didn't go accordingly, the addition of the extra warning range and timer change helped enhance the final test in relation to my functional requirements.
+### Final Test in Relation to Non-Functional Criteria
+
+### Final Performance in Relation to Identified Need
+
+### Project in Relation to Project Management
+
+### Project in Relation to Peer Feedback
+
+### Future Improvements to Final Product
